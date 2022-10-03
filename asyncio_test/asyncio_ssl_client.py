@@ -1,6 +1,11 @@
 import asyncio
 import logging
 import sys
+import ssl
+
+ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+ssl_context.check_hostname = False
+ssl_context.load_verify_locations('../ssl/pymotw.crt')
 
 MESSAGES = [
     b'This is the message. ',
@@ -8,7 +13,7 @@ MESSAGES = [
     b'in parts.',
 ]
 
-SERVER_ADDRESS = ('bnso.ydns.eu', 10000)
+SERVER_ADDRESS = ('bnso.ydns.eu', 443)
 #SERVER_ADDRESS = ('localhost', 10000)
 
 logging.basicConfig(
@@ -25,7 +30,7 @@ async def echo_client(address, messages):
 
     try:
         log.debug('trying connected to server')
-        reader, writer = await asyncio.open_connection(*address)
+        reader, writer = await asyncio.open_connection(*address, ssl=ssl_context)
     except OSError as e:
         log.debug(f'OSError: {e}')
         return
@@ -33,8 +38,9 @@ async def echo_client(address, messages):
     for msg in messages:
         writer.write(msg)
         log.debug('sendind {!r}'.format(msg))
-    if writer.can_write_eof():
-        writer.write_eof()
+    # SSL не поддерживает метке EOF, поэтому для обозначения
+    # конца сообщения используется нулевой байт
+    writer.write(b'\x00')
     await writer.drain()
 
     log.debug('waiting for response')
