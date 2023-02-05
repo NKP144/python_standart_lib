@@ -30,7 +30,8 @@ async def echo(reader, writer):
             return
 
 
-event_loop = asyncio.get_event_loop()
+event_loop = asyncio.new_event_loop()
+asyncio.set_event_loop(event_loop)
 
 # Создать сервер и завершить сопрограмму перед запуском реального цикла событий
 factory = asyncio.start_server(echo, *SERVER_ADDRESS)
